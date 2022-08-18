@@ -185,6 +185,7 @@ namespace ShowFilledLog
 							lastDateChecked = mif.ReadBool("DateRangeFilter", "LastDateChecked", lastDateChecked);
 							lastDate = mif.ReadDateTime("DateRangeFilter", "LastDate", lastDate);
 						}
+                        _log.Sort((a, b) => Comparison(a, b));
 						lvLogView.VirtualListSize = _log.Count;
 						foreach (var dev in devices.OrderBy(item => SortFunc(item)))
 						{
@@ -206,8 +207,13 @@ namespace ShowFilledLog
 				Cursor = Cursors.Default;
 			}
 		}
-		
-		string SortFunc(string item)
+
+        private int Comparison(EventItem a, EventItem b)
+        {
+            return a.SnapTime > b.SnapTime ? 1 : a.SnapTime < b.SnapTime ? -1 : 0;
+        }
+
+        string SortFunc(string item)
 		{
 			var vals = item.Split(new string[] { "Стояк " }, StringSplitOptions.None);
 			var value = vals[vals.Length - 1];
@@ -295,7 +301,7 @@ namespace ShowFilledLog
                     for (var row = 0; row < _log.Count; row++)
                     {
                         var logitem = _log[row];
-                        sheet.Cells[row + 2, 1] = logitem.SnapTime.ToString("dd.MM.yy HH:mm:ss");
+                        sheet.Cells[row + 2, 1] = logitem.SnapTime; //logitem.SnapTime.ToString("dd.MM.yy HH:mm:ss");
                         sheet.Cells[row + 2, 2] = logitem.DevPath;
                         sheet.Cells[row + 2, 3] = eventmsg[logitem.EventCode];
                         if (logitem.EventCode == 13)
