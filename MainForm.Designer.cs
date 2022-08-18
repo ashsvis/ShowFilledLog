@@ -40,6 +40,7 @@ namespace ShowFilledLog
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.miFile = new System.Windows.Forms.ToolStripMenuItem();
             this.miLoad = new System.Windows.Forms.ToolStripMenuItem();
+            this.miExport = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.miExit = new System.Windows.Forms.ToolStripMenuItem();
             this.miTuning = new System.Windows.Forms.ToolStripMenuItem();
@@ -53,6 +54,8 @@ namespace ShowFilledLog
             this.btnUpdate = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.btnTuningFilter = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.tsbExport = new System.Windows.Forms.ToolStripButton();
             this.lvLogView = new System.Windows.Forms.ListView();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -63,11 +66,12 @@ namespace ShowFilledLog
             this.columnHeader7 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader8 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader9 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.miExport = new System.Windows.Forms.ToolStripMenuItem();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.tsbExport = new System.Windows.Forms.ToolStripButton();
+            this.backWorkerExport = new System.ComponentModel.BackgroundWorker();
+            this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
+            this.backWorkerLoad = new System.ComponentModel.BackgroundWorker();
             this.menuStrip1.SuspendLayout();
+            this.statusStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -96,19 +100,26 @@ namespace ShowFilledLog
             // miLoad
             // 
             this.miLoad.Name = "miLoad";
-            this.miLoad.Size = new System.Drawing.Size(152, 22);
+            this.miLoad.Size = new System.Drawing.Size(180, 22);
             this.miLoad.Text = "Загрузить";
             this.miLoad.Click += new System.EventHandler(this.MiLoadClick);
+            // 
+            // miExport
+            // 
+            this.miExport.Name = "miExport";
+            this.miExport.Size = new System.Drawing.Size(180, 22);
+            this.miExport.Text = "Экспорт...";
+            this.miExport.Click += new System.EventHandler(this.miExport_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(177, 6);
             // 
             // miExit
             // 
             this.miExit.Name = "miExit";
-            this.miExit.Size = new System.Drawing.Size(152, 22);
+            this.miExit.Size = new System.Drawing.Size(180, 22);
             this.miExit.Text = "Выход";
             this.miExit.Click += new System.EventHandler(this.MiExitClick);
             // 
@@ -129,6 +140,8 @@ namespace ShowFilledLog
             // 
             // statusStrip1
             // 
+            this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripProgressBar1});
             this.statusStrip1.Location = new System.Drawing.Point(0, 379);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Size = new System.Drawing.Size(1133, 22);
@@ -211,6 +224,21 @@ namespace ShowFilledLog
             this.btnTuningFilter.Text = "Фильтр...";
             this.btnTuningFilter.Click += new System.EventHandler(this.BtnTuningFilterClick);
             // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
+            // 
+            // tsbExport
+            // 
+            this.tsbExport.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbExport.Image = ((System.Drawing.Image)(resources.GetObject("tsbExport.Image")));
+            this.tsbExport.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbExport.Name = "tsbExport";
+            this.tsbExport.Size = new System.Drawing.Size(65, 22);
+            this.tsbExport.Text = "Экспорт...";
+            this.tsbExport.Click += new System.EventHandler(this.miExport_Click);
+            // 
             // lvLogView
             // 
             this.lvLogView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -226,6 +254,7 @@ namespace ShowFilledLog
             this.lvLogView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.lvLogView.FullRowSelect = true;
             this.lvLogView.GridLines = true;
+            this.lvLogView.HideSelection = false;
             this.lvLogView.Location = new System.Drawing.Point(0, 49);
             this.lvLogView.Name = "lvLogView";
             this.lvLogView.ShowItemToolTips = true;
@@ -286,32 +315,28 @@ namespace ShowFilledLog
             this.columnHeader9.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.columnHeader9.Width = 70;
             // 
-            // miExport
-            // 
-            this.miExport.Name = "miExport";
-            this.miExport.Size = new System.Drawing.Size(152, 22);
-            this.miExport.Text = "Экспорт...";
-            this.miExport.Click += new System.EventHandler(this.miExport_Click);
-            // 
             // saveFileDialog1
             // 
             this.saveFileDialog1.DefaultExt = "xlsx";
             this.saveFileDialog1.Filter = "Книга Microsoft Excel (*.xlsx)|*.xlsx";
             // 
-            // toolStripSeparator2
+            // backWorkerExport
             // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
+            this.backWorkerExport.WorkerReportsProgress = true;
+            this.backWorkerExport.WorkerSupportsCancellation = true;
+            this.backWorkerExport.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backWorkerExport_DoWork);
+            this.backWorkerExport.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backWorkerExport_ProgressChanged);
+            this.backWorkerExport.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backWorkerExport_RunWorkerCompleted);
             // 
-            // tsbExport
+            // toolStripProgressBar1
             // 
-            this.tsbExport.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbExport.Image = ((System.Drawing.Image)(resources.GetObject("tsbExport.Image")));
-            this.tsbExport.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.tsbExport.Name = "tsbExport";
-            this.tsbExport.Size = new System.Drawing.Size(65, 22);
-            this.tsbExport.Text = "Экспорт...";
-            this.tsbExport.Click += new System.EventHandler(this.miExport_Click);
+            this.toolStripProgressBar1.Name = "toolStripProgressBar1";
+            this.toolStripProgressBar1.Size = new System.Drawing.Size(100, 16);
+            // 
+            // backWorkerLoad
+            // 
+            this.backWorkerLoad.WorkerReportsProgress = true;
+            this.backWorkerLoad.WorkerSupportsCancellation = true;
             // 
             // MainForm
             // 
@@ -328,9 +353,12 @@ namespace ShowFilledLog
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.WindowsDefaultBounds;
             this.Text = "Журнал работы";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainFormLoad);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            this.statusStrip1.ResumeLayout(false);
+            this.statusStrip1.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -367,5 +395,8 @@ namespace ShowFilledLog
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripButton tsbExport;
+        private System.ComponentModel.BackgroundWorker backWorkerExport;
+        private System.Windows.Forms.ToolStripProgressBar toolStripProgressBar1;
+        private System.ComponentModel.BackgroundWorker backWorkerLoad;
     }
 }

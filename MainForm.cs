@@ -283,60 +283,103 @@ namespace ShowFilledLog
         private void miExport_Click(object sender, EventArgs e)
         {
             if (saveFileDialog1.ShowDialog(this) != DialogResult.OK) return;
+            miExport.Enabled = false;
+            tsbExport.Enabled = false;
+            toolStripProgressBar1.Visible = true;
             // экспортируем в файл Excel
             try
             {
                 var templateName = Path.Combine(Application.StartupPath, "Template.xltx");
                 if (!File.Exists(templateName))
                     File.WriteAllBytes(templateName, Properties.Resources.Template);
-                Cursor = Cursors.WaitCursor;
-                try
-                {
-                    // создаем подключение к Excel
-                    dynamic xl = Activator.CreateInstance(Type.GetTypeFromProgID("Excel.Application"));
-                    var outputName = saveFileDialog1.FileName;
-                    if (File.Exists(outputName)) File.Delete(outputName);
-                    var wb = xl.Workbooks.Open(templateName, 0, true);
-                    var sheet = wb.Sheets[1];
-                    for (var row = 0; row < _log.Count; row++)
-                    {
-                        var logitem = _log[row];
-                        sheet.Cells[row + 2, 1] = logitem.SnapTime; //logitem.SnapTime.ToString("dd.MM.yy HH:mm:ss");
-                        sheet.Cells[row + 2, 2] = logitem.DevPath;
-                        sheet.Cells[row + 2, 3] = eventmsg[logitem.EventCode];
-                        if (logitem.EventCode == 13)
-                        {
-                            sheet.Cells[row + 2, 4] = logitem.Number.ToString("00000000");
-                            sheet.Cells[row + 2, 5] = logitem.Type.ToString("0");
-                            sheet.Cells[row + 2, 6] = logitem.Height.ToString("0");
-                            sheet.Cells[row + 2, 7] = logitem.Meagure ? "Замер" : "Тип";
-                            sheet.Cells[row + 2, 8] = logitem.Setpoint.ToString("0");
-                        }
-                    }
-                    wb.SaveAs(outputName);
-                    wb.Close();
-                    // выгружаем Excel
-                    xl.Quit();
-                    GC.Collect();
-                }
-                finally
-                {
-                    Cursor = Cursors.Default;
-                }
-                MessageBox.Show(this, "Данные успешно записаны", @"Экспорт в Excel", MessageBoxButtons.OK,
-                                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                toolStripProgressBar1.Value = 0;
+                backWorkerExport.RunWorkerAsync(templateName);
+
             }
             catch (Exception ex)
             {
+                miExport.Enabled = true;
+                tsbExport.Enabled = true;
+                toolStripProgressBar1.Visible = false;
                 // при ошибке покажем пользователю сообщение в отдельном окне
                 MessageBox.Show(this, ex.Message, @"Ошибка экспорта в Excel", MessageBoxButtons.OK,
                                 MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
             }
         }
 
+        private void backWorkerExport_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            var templateName = (string)e.Argument;
+            try
+            {
+                // создаем подключение к Excel
+                dynamic xl = Activator.CreateInstance(Type.GetTypeFromProgID("Excel.Application"));
+                var outputName = saveFileDialog1.FileName;
+                if (File.Exists(outputName)) File.Delete(outputName);
+                var wb = xl.Workbooks.Open(templateName, 0, true);
+                var sheet = wb.Sheets[1];
+                var worker = (System.ComponentModel.BackgroundWorker)sender;
+                for (var row = 0; row < _log.Count; row++)
+                {
+                    if (worker.CancellationPending)
+                    {
+                        e.Result = new Exception("Прервано пользователем!");
+                        break;
+                    }
+                    var logitem = _log[row];
+                    sheet.Cells[row + 2, 1] = logitem.SnapTime; //logitem.SnapTime.ToString("dd.MM.yy HH:mm:ss");
+                    sheet.Cells[row + 2, 2] = logitem.DevPath;
+                    sheet.Cells[row + 2, 3] = eventmsg[logitem.EventCode];
+                    if (logitem.EventCode == 13)
+                    {
+                        sheet.Cells[row + 2, 4] = logitem.Number.ToString("00000000");
+                        sheet.Cells[row + 2, 5] = logitem.Type.ToString("0");
+                        sheet.Cells[row + 2, 6] = logitem.Height.ToString("0");
+                        sheet.Cells[row + 2, 7] = logitem.Meagure ? "Замер" : "Тип";
+                        sheet.Cells[row + 2, 8] = logitem.Setpoint.ToString("0");
+                    }
+                    worker.ReportProgress((int)(row * 100.0 / _log.Count));
+                }
+                wb.SaveAs(outputName);
+                wb.Close();
+                // выгружаем Excel
+                xl.Quit();
+                GC.Collect();
+            }
+            catch (Exception ex)
+            {
+                e.Result = ex;
+            }
+        }
+
+        private void backWorkerExport_ProgressChanged(object sender, System.ComponentModel.ProgressChangedEventArgs e)
+        {
+            toolStripProgressBar1.Value = e.ProgressPercentage;
+        }
+
+        private void backWorkerExport_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            miExport.Enabled = true;
+            tsbExport.Enabled = true;
+            toolStripProgressBar1.Visible = false;
+            if (e.Result is Exception ex)
+                MessageBox.Show(this, ex.Message, @"Экспорт в Excel", MessageBoxButtons.OK,
+                            MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+            else
+                MessageBox.Show(this, "Данные успешно записаны", @"Экспорт в Excel", MessageBoxButtons.OK,
+                            MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (backWorkerExport.IsBusy) backWorkerExport.CancelAsync();
+            while (backWorkerExport.IsBusy) { Application.DoEvents(); }
+        }
+
         void MainFormLoad(object sender, EventArgs e)
 		{
-			LoadLog();
+            toolStripProgressBar1.Visible = false;
+            LoadLog();
 			LoadLog(true);
 		}
 		
