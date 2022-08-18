@@ -1,14 +1,5 @@
-﻿/*
- * Created by SharpDevelop.
- * User: Сектор2
- * Date: 06.08.2018
- * Time: 12:48
- * 
- * To change this template use Tools | Options | Coding | Edit Standard Headers.
- */
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Linq;
@@ -158,8 +149,6 @@ namespace ShowFilledLog
 								}
 							}
 							if (buff.Length - shift < 80) break;
-							//UInt16 crc = BitConverter.ToUInt16(buff, shift);
-							//shift += sizeof(UInt16);
 						}
 						if (!filtered)
 						{

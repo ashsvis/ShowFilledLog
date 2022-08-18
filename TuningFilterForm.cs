@@ -1,13 +1,4 @@
-﻿/*
- * Created by SharpDevelop.
- * User: Сектор2
- * Date: 07.08.2018
- * Time: 9:19
- * 
- * To change this template use Tools | Options | Coding | Edit Standard Headers.
- */
-using System;
-using System.Drawing;
+﻿using System;
 using System.Windows.Forms;
 using System.Collections.Generic;
 
